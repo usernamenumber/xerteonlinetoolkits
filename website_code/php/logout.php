@@ -23,10 +23,16 @@
  *
  * @author Patrick Lockley
  * @version 1.0
- * @copyright Copyright (c) 2008,2009 University of Nottingham
  * @package
  */
 
 require_once(dirname(__FILE__) . '/../../config.php');
 
+$authmech = Xerte_Authentication_Factory::create($xerte_toolkits_site->authentication_method);
+
+if ($authmech->hasLogout())
+{
+    _debug("Single Logout");
+    $authmech->logout();
+}
 session_destroy();

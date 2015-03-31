@@ -24,13 +24,19 @@
  *
  * @author Patrick Lockley
  * @version 1.0
- * @copyright Copyright (c) 2008,2009 University of Nottingham
  * @package
  */
 
 require_once('../../../config.php');
 include '../folder_library.php';
 
-move_file($_POST['files'],$_POST['destination']);
+if (isset($_POST['folder_id']))
+{
+    move_folder($_POST['folder_id'], $_POST['destination']);
+}
+else
+{
+    move_file($_POST['template_id'],$_POST['destination']);
+}
 
 ?>

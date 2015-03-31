@@ -25,7 +25,6 @@
 	 *
 	 * @author Patrick Lockley
 	 * @version 1.0
-	 * @copyright Copyright (c) 2008,2009 University of Nottingham
 	 * @package
 	 */
 	 
@@ -301,7 +300,7 @@ function find_height(){
 
 	current_node=document.getElementById("file_area");
 
-	while(current_node.className!="pagecontainer"){
+	while(current_node!=null && current_node.id!="pagecontainer"){
 
 		total_height+=current_node.offsetTop;
 		
@@ -417,7 +416,7 @@ function release_drag_flag(){
 	 * @version 1.0
 	 * @author Patrick Lockley
 	 */
-
+// TODO: depracate
 function file_drag_stop(ev,div){
 
 	release_drag_flag();

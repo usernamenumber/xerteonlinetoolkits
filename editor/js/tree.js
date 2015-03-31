@@ -23,6 +23,9 @@ var EDITOR = (function ($, parent) {
     // Create the tree object and refer locally to it as 'my'
     var my = parent.tree = {},
         toolbox = parent.toolbox,
+        defaultLanguage = false,
+        defaultAdvanced = false,
+
 
     // Called once document is ready
     setup = function (xml) {
@@ -30,15 +33,36 @@ var EDITOR = (function ($, parent) {
         do_bottom_buttons();
         do_buttons();
         build(xml);
+
+        jQuery(window).bind('beforeunload', function (e)
+        {
+            //save my data
+            savepreview();
+            try{
+                bunload();
+            }
+            catch(err)
+            {
+                // ignore
+            }
+
+            e.returnValue = language.Alert.exitwizard.prompt;
+            return language.Alert.exitwizard.prompt;
+            //return false;
+        });
     },
 
     // Add the buttons
     do_buttons = function () {
-        $( "#insert-dialog" ).hide();
-        $( "#insert-buttons" ).hide();
-
         var insert_page = function() {
-            $( "#insert-dialog" ).dialog({ width: '60%'});
+            $("#shadow").show();
+			$("#insert_menu")
+				.css({
+					"top":	$(".pane-west").position().top + $(".pane-west .content").position().top,
+					"left":	$("#insert_button").position().left
+					})
+				.show();
+
         },
 
         delete_page = function() {
@@ -59,13 +83,22 @@ var EDITOR = (function ($, parent) {
             var button = $('<button>')
                 .attr('id', value.id)
                 .attr('title', value.tooltip)
+				.attr('tabindex', index == 0 ? index + 1 : index + 5) // leave gap in tab index for insert page menu & its insert buttons (needed for easy keyboard navigation)
                 .addClass("xerte_button_dark")
                 .click(value.click)
                 .append($('<img>').attr('src', value.icon).height(14))
                 .append(value.name);
             buttons.append(button);
         });
+		
         $('.ui-layout-west .header').append(buttons);
+
+        // If the menu is empty, disable insert
+        if (menu_data.menu.length == 1 && menu_data.menu[0].name == "")
+        {
+            $('#insert_button').prop('disabled', true);
+            $('#insert_button').addClass('disabled');
+        }
 
         // Page type
         $('.ui-layout-center .header').append($('<div>').attr('id', 'pagetype'));
@@ -73,7 +106,7 @@ var EDITOR = (function ($, parent) {
         buttons = $('<div />').attr('id', 'save_buttons');
         $([
             {name:language.btnPreview.$label, tooltip: language.btnPreview.$tooltip, icon:'editor/img/play.png', id:'preview_button', click:preview},
-            {name:language.btnSaveXerte.$label, tooltip: language.btnSaveXerte.$tooltip, icon:'editor/img/publish.png', id:'save_button', click:savepreview},
+            //{name:language.btnSaveXerte.$label, tooltip: language.btnSaveXerte.$tooltip, icon:'editor/img/publish.png', id:'save_button', click:savepreview},
             {name:language.btnPublishXot.$label, tooltip: language.btnPublishXot.$tooltip, icon:'editor/img/publish.png', id:'publish_button', click:publish}
         ])
         .each(function(index, value) {
@@ -287,11 +320,13 @@ var EDITOR = (function ($, parent) {
             // show
             $('#languagePanel').show();
             $('#languagePanel div.inputtext').attr('contenteditable', 'true');
+            defaultLanguage = true;
 
         }
         else
         {
             $('#languagePanel').hide();
+            defaultLanguage = false;
         }
     },
 
@@ -301,17 +336,65 @@ var EDITOR = (function ($, parent) {
             // show
             $('.advNewNodesLevel').show();
             //$('div.textinput').attr('contenteditable', 'true');
+            defaultAdvanced = true;
 
         }
         else
         {
             $('.advNewNodesLevel').hide();
+            defaultAdvanced = false;
         }
     },
 
     showToolbar = function(){
         parent.toolbox.showToolBar($('#toolbar_cb').prop('checked'));
     },
+
+    duplicateNodes = function(tree, id, parent_id, pos, select)
+    {
+        console.log(id);
+
+        var current_node = tree.get_node(id, false); console.log(current_node);
+
+        // This will be the key for the new node
+        var key = parent.tree.generate_lo_key();
+
+        // Duplicate the node data, make sure the node gets deep copied!
+        lo_data[key] = $.extend(true, {},lo_data[id]);
+
+        // Give unique linkID
+        if (lo_data[key].attributes['linkID']) {
+            var linkID = 'PG' + new Date().getTime();
+            lo_data[key].attributes['linkID'] = linkID;
+        }
+
+        // Create the tree node
+        var this_json = {
+            id : key,
+            text : current_node.text,
+            type : current_node.type,
+            state: {
+                opened:true
+            }
+        }
+        console.log(this_json);
+
+        // Add the node
+        if (validateInsert(parent_id, current_node.type, tree))
+        {
+            var newkey = tree.create_node(parent_id, this_json, pos, function(){
+                if (select) {
+                    tree.deselect_all();
+                    tree.select_node(key);
+                }
+            });
+        }
+
+        // Also clone all sub-pages
+        $.each(current_node.children, function () {
+            duplicateNodes(tree, this, key, "last", false)
+        });
+    }
 
     // Make a copy of the currently selected node
     // Presently limited to first node if multiple selected
@@ -325,55 +408,21 @@ var EDITOR = (function ($, parent) {
 
         if (id == "treeroot") { return false; } // Can't copy the root node
 
-        console.log(id);
-        // This will be the key for the new node
-        var key = parent.tree.generate_lo_key();
-
-        // Duplicate the node data
-        lo_data[key] = lo_data[id];
-
-        // Give unique linkID
-        if (lo_data[key].attributes['linkID']) {
-            var linkID = 'PG' + new Date().getTime();
-            lo_data[key].attributes['linkID'] = linkID;
-        }
-
-        // Create the tree node
+        // Determine pos
+        var pos;
         var current_node = tree.get_node(id, false); console.log(current_node);
         var parent_node_id = tree.get_parent(current_node); console.log(parent_node_id);
         var parent_node = tree.get_node(parent_node_id, false); console.log(parent_node);
-        var this_json = {
-            id : key,
-            text : current_node.text,
-            type : current_node.type
-        }
-        console.log(this_json);
-
-        // Determine pos
-        var pos;
-
-        id = ids[0];
-
         // Walk and count children of 'treeroot' to figure out pos
         var i = 0;
-        $.each(tree.get_children_dom(parent_node_id), function () {
-            if (this.attributes['id'].nodeValue == id)
+        $.each(parent_node.children, function () {
+            if (this == id)
                 pos = i;
             i++;
         });
         pos++;
 
-        // Add the node
-        if (validateInsert(parent_node.type, current_node.type, tree))
-        {
-            var newkey = tree.create_node(parent_node_id, this_json, pos, function(){
-                tree.deselect_all();
-                tree.select_node(key);
-            });
-        }
-
-
-        //tree.copy_node(current_node, parent_node, 'after');
+        duplicateNodes(tree, id, parent_node_id, pos, true);
 
         return true; // Successful
 
@@ -388,13 +437,14 @@ var EDITOR = (function ($, parent) {
         if(!ids.length) { return false; } // Something needs to be selected
 
         id = ids[0];
+        var nodeName = lo_data[id].attributes.nodeName;
 
-        if (id == "treeroot") {  // Can't remove the root node
-            alert("You can't remove the LO node");
+        if (wizard_data[nodeName].menu_options.remove == "false") {  // Can't remove the root node
+            alert(language.Alert.deletenode.error.prompt);
             return false;
         }
 
-        if (!confirm('Are you sure you want to delete this page?')) {
+        if (!confirm(language.Alert.deletenode.confirm.prompt)) {
             return;
         }
 
@@ -418,6 +468,13 @@ var EDITOR = (function ($, parent) {
 
     // Refresh the page when a new node is selected
     showNodeData = function (key) {
+
+
+        // Cleanup all current CKEDITOR instances!
+        for(name in CKEDITOR.instances)
+        {
+            CKEDITOR.instances[name].destroy(true);
+        }
 
         var attributes = lo_data[key]['attributes'];
 
@@ -459,7 +516,7 @@ var EDITOR = (function ($, parent) {
                     topmenu = true;
                 }
             }
-            while (!topmenu || id == 'treeroot');
+            while (!topmenu && id != 'treeroot');
             if (lmenu_options.menu)
             {
                 crumb = lmenu_options.menu + ' > ' + crumb;
@@ -574,6 +631,10 @@ var EDITOR = (function ($, parent) {
             {
                 toolbox.displayParameter('#mainPanel .wizard', node_options['normal'], attribute_name, attribute_value.value, key);
             }
+            else if (node_options['normal'][i].value.mandatory)
+            {
+                toolbox.displayParameter('#mainPanel .wizard', node_options['normal'], attribute_name, node_options['normal'][i].value.defaultValue, key);
+            }
         }
 
         $('#languagePanel').html("<hr><table class=\"wizard\" border=\"0\">");
@@ -593,18 +654,32 @@ var EDITOR = (function ($, parent) {
         if (nrlanguageoptions>0)
         {
             // Enable Advanced settings
-            $('#languagePanel').hide();
+            if (defaultLanguage)
+            {
+                $('#languagePanel').show();
+                $('#languagePanel div.inputtext').attr('contenteditable', 'true');
+            }
+            else
+            {
+                $('#languagePanel').hide();
+            }
             $('#language_cb_span').switchClass("disabled", "enabled");
             $('#language_cb').removeAttr("disabled");
-            $('#language_cb').prop('checked', false);
+            $('#language_cb').prop('checked', defaultLanguage);
         }
         else
         {
             // Hide the advanced panel and disable check box
-            $('#languagePanel').hide();
+            if (defaultAdvanced)
+            {
+                $('#languagePanel').show();
+            }
+            else {
+                $('#languagePanel').hide();
+            }
             $('#language_cb_span').switchClass("enabled", "disabled");
             $('#language_cb').attr("disabled", "disabled");
-            $('#language_cb').prop('checked', false);
+            $('#language_cb').prop('checked', defaultLanguage);
         }
 
         // Extra insert buttons
@@ -658,7 +733,8 @@ var EDITOR = (function ($, parent) {
                 level = level.append(leveltitle);
 
                 var advnodes_level = false;
-                for (var i=0; i<new_nodes.length; i++)
+                // Weird, the flash editor showed the nodes in reversed order
+                for (var i=new_nodes.length-1; i>=0; i--)
                 {
                     var item = new_nodes[i];
                     var itemname = item;
@@ -713,50 +789,46 @@ var EDITOR = (function ($, parent) {
                 $('.advNewNodesLevel').hide();
                 $('#advanced_cb_span').switchClass("disabled", "enabled");
                 $('#advanced_cb').removeAttr("disabled");
-                $('#advanced_cb').prop('checked', false);
+                $('#advanced_cb').prop('checked', defaultAdvanced);
             }
             else
             {
                 // Hide the advanced panel and disable check box
                 $('#advanced_cb_span').switchClass("enabled", "disabled");
                 $('#advanced_cb').attr("disabled", "disabled");
-                $('#advanced_cb').prop('checked', false);
+                $('#advanced_cb').prop('checked', defaultAdvanced);
                 $('.advNewNodesLevel').hide();
             }
         }
 
-        // schedule MathJax
-        // Queue reparsing of MathJax - fails if no network connection
-       // try { MathJax.Hub.Queue(["Typeset",MathJax.Hub]); } catch (e){}
-        // The optional parameters (what to do here, only enable the not used entries)
-
-    /*
-        for (var i=0; i<attributes.length; i++) {
-            if ($.inArray(attributes[i].name, ['nodeName', 'linkID']) < 0) {
-                var attribute_name = attributes[i].name;
-                var attribute_value = attributes[i].value;
-
-                var options = getOptionValue(node_options['all'], attribute_name);
-                if (options != null)
-                {
-                    var output_string = '<tr class="wizardattribute">';
-                    if (options.optional == 'true')
-                    {
-                        output_string += '<td class="wizardoptional"><img src="img/optional.gif" />&nbsp;</td>';
-                    }
-                    else
-                    {
-                        output_string += '<td class="wizardparameter"></td>';
-                    }
-                    output_string += '<td class="wizardlabel">' + options.label + ' : </td>';
-                    output_string += '<td class="wizardvalue">' + displayDataType(attribute_value, options) + '</td>';
-                    output_string += '</tr>';
-                    $('#mainContent').append(output_string);
-                }
-            }
+        //finally, do the help, if it exists...
+        if (wizard_data[node_name].info.length > 0)
+        {
+            $('#info').html(wizard_data[node_name].info);
         }
-    */
+        else
+        {
+            $('#info').html("");
+        }
+        /*
+        if (nodeInfo.info != undefined){
 
+
+            var comp = addComponent(TextArea,  {_x:250, _y:ctrlY + 20, html:true, wordWrap:true, hScrollPolicy:'off'});
+            comp.setSize(540, 576 - ctrlY + 20 - 50); //to the bottom of the form
+            comp.setStyle('color', 0x0066CC);
+            comp.setStyle('backgroundColor', 0xE0E0E0);
+            comp.setStyle('borderStyle', 'none');
+
+            var helpStr = '<font color="#0066CC">' + nodeInfo.info + '</font>';
+
+            //append the image src...
+            if (wizard.nfoObject.wizard[obj.target.selectedNode.nodeName].info.image != undefined){
+                helpStr += '<img src= "' + nodeInfo.info.image + '"/>'
+            }
+            comp.text = helpStr;
+        }
+        */
         //$('textarea.ckeditor').ckeditor(function(){}, { customConfig: 'config.js' });
         //$('textarea.ckeditor').ckeditor();
         toolbox.convertTextAreas();
@@ -775,32 +847,34 @@ var EDITOR = (function ($, parent) {
         //setTimeout($('#mainPanel').animate({scrollTop: 0}, 500));
     },
 
-    addSubNode = function (event)
+    addNodeToTree = function(key, pos, nodeName, xmlData, tree, select)
     {
-        console.log('Add sub node ' + event.data.node + ' to ' + event.data.key);
-        var tree = $.jstree.reference("#treeview");
-        var node = tree.get_node(event.data.key, false);
-        var nodeName = event.data.node;
-        var key = parent.tree.generate_lo_key();
-        var xmlData = $.parseXML(event.data.defaultnode);
-        // Parse the attributes and store in the data store
+        var lkey = parent.tree.generate_lo_key();
         var attributes = {nodeName: nodeName, linkID : 'PG' + new Date().getTime()};
-        $(xmlData.firstChild.attributes).each(function() {
+        var extranodes = false;
+        $(xmlData.attributes).each(function() {
             attributes[this.name] = this.value;
         });
-        lo_data[key] = {};
-        lo_data[key]['attributes'] = attributes;
-        if (xmlData.firstChild.firstChild && xmlData.firstChild.firstChild.nodeType == 3)  // becomes a cdata-section
+        lo_data[lkey] = {};
+        lo_data[lkey]['attributes'] = attributes;
+        if (xmlData.firstChild)
         {
-            lo_data[key]['data'] = xmlData.firstChild.firstChild.data;
+            if(xmlData.firstChild.nodeType == 3)  // becomes a cdata-section
+            {
+                lo_data[lkey]['data'] = xmlData.firstChild.data;
+            }
+            else if (xmlData.firstChild.nodeType == 1) // extra node
+            {
+                extranodes = true;
+            }
         }
         // Build the JSON object for the treeview
         // For version 3 jsTree
 
         var treeLabel = nodeName;
-        if (xmlData.firstChild.attributes['name'])
+        if (xmlData.attributes['name'])
         {
-            treeLabel = xmlData.firstChild.attributes['name'].value;
+            treeLabel = xmlData.attributes['name'].value;
         }
         else
         {
@@ -808,20 +882,46 @@ var EDITOR = (function ($, parent) {
                 treeLabel = wizard_data[treeLabel].menu_options.menuItem;
         }
         var this_json = {
-            id : key,
+            id : lkey,
             text : treeLabel,
-            type : nodeName
+            type : nodeName,
+            state: {
+                opened: true
+            }
         }
-        console.log(this_json);
+        console.log("Adding " + this_json);
         // Add the node
-        if (validateInsert(event.data.key, nodeName, tree))
+        if (validateInsert(key, nodeName, tree))
         {
-            var newkey = tree.create_node(event.data.key, this_json, 'last', function(){
-                tree.deselect_all();
-                tree.select_node(key);
+            var newkey = tree.create_node(key, this_json, pos, function(){
+                if (select) {
+                    tree.deselect_all();
+                    tree.select_node(lkey);
+                }
             });
         }
-        console.log(key);
+        // Any children to add
+        if (extranodes)
+        {
+            $.each(xmlData.childNodes, function(nr, child) {   // Was children
+                if (child.nodeType == 1)
+                {
+                    addNodeToTree(lkey,'last',child.nodeName,child,tree,false);
+                }
+            });
+        }
+    },
+
+    addSubNode = function (event)
+    {
+        console.log('Add sub node ' + event.data.node + ' to ' + event.data.key);
+        var tree = $.jstree.reference("#treeview");
+        var node = tree.get_node(event.data.key, false);
+        var nodeName = event.data.node;
+        //var key = parent.tree.generate_lo_key();
+        var xmlData = $.parseXML(event.data.defaultnode);
+        // Parse the attributes and store in the data store
+        addNodeToTree(event.data.key,'last',nodeName,xmlData.firstChild,tree,true);
 
     },
 
@@ -881,107 +981,8 @@ var EDITOR = (function ($, parent) {
         if (i >= wizard_data['learningObject'].new_nodes.length)
             return; // not found!!
         var xmlData = $.parseXML(wizard_data['learningObject'].new_nodes_defaults[i]).firstChild;
-        // Parse the attributes and store in the data store
-        var attributes = {nodeName: nodeName, linkID : 'PG' + new Date().getTime()};
-        $(xmlData.attributes).each(function() {
-            attributes[this.name] = this.value;
-        });
-        lo_data[key] = {};
-        lo_data[key]['attributes'] = attributes;
-        if (xmlData.firstChild)
-        {
-            if(xmlData.firstChild.nodeType == 3)  // becomes a cdata-section
-            {
-                lo_data[key]['data'] = xmlData.firstChild.data;
-            }
-            else if (xmlData.firstChild.nodeType == 1) // extra node
-            {
-                extranodes = true;
-            }
-        }
 
-        // Build the JSON object for the treeview
-        // For version 3 jsTree
-
-        var treeLabel = nodeName;
-        if (xmlData.attributes['name'])
-        {
-            treeLabel = xmlData.attributes['name'].value;
-        }
-        else
-        {
-            if (wizard_data[treeLabel].menu_options.menuItem)
-                treeLabel = wizard_data[treeLabel].menu_options.menuItem;
-        }
-        var this_json = {
-            id : key,
-            text : treeLabel,
-            type : nodeName
-        }
-        console.log(this_json);
-        // Add the node
-        if (validateInsert('learningObject', nodeName, tree))
-        {
-            var newkey = tree.create_node('treeroot', this_json, pos, function(){
-                tree.deselect_all();
-                tree.select_node(key);
-            });
-        }
-        // Any children to add?
-        if (extranodes)
-        {
-            var nodekey = key;
-            var nodeType = nodeName;
-            $.each(xmlData.childNodes, function(nr, child){   // Was children
-                key = parent.tree.generate_lo_key();
-                if (child.nodeType == 1)
-                {
-                    nodeName = child.nodeName;
-
-                    // Parse the attributes and store in the data store
-                    attributes = {nodeName: nodeName, linkID : 'PG' + new Date().getTime()};
-                    $(child.attributes).each(function() {
-                        attributes[this.name] = this.value;
-                    });
-                    lo_data[key] = {};
-                    lo_data[key]['attributes'] = attributes;
-                    if (child.firstChild)
-                    {
-                        if(child.firstChild.nodeType == 3)  // becomes a cdata-section
-                        {
-                            lo_data[key]['data'] = child.firstChild.data;
-                        }
-                    }
-
-                    // Build the JSON object for the treeview
-                    // For version 3 jsTree
-
-                    var treeLabel = nodeName;
-                    if (child.attributes['name'])
-                    {
-                        treeLabel = child.attributes['name'].value;
-                    }
-                    else
-                    {
-                        if (wizard_data[treeLabel].menu_options.menuItem)
-                            treeLabel = wizard_data[treeLabel].menu_options.menuItem;
-                    }
-                    var this_json = {
-                        id : key,
-                        text : treeLabel,
-                        type : nodeName
-                    }
-                    console.log(this_json);
-                    // Add the node
-                    if (validateInsert(nodeType, nodeName, tree))
-                    {
-                        newkey = tree.create_node(nodekey, this_json, 'last', function(){
-                            console.log("subnode " + nodeName + " added as well");
-                        });
-                    }
-                }
-            });
-        }
+        addNodeToTree('treeroot',pos,nodeName,xmlData,tree,true);
     },
 
     validateInsert = function(key, newNode, tree)
@@ -989,28 +990,36 @@ var EDITOR = (function ($, parent) {
         if (wizard_data[newNode]['menu_options'].max)
         {
             var max = wizard_data[newNode]['menu_options'].max;
-            var nrchildren = tree.get_children_dom(key).length;
-            if (max == nrchildren)
-            {
-                var mesg = language.Alert.validate.max.$prompt;
-                var pos = mesg.indexOf("{m}");
-                mesg = mesg.substr(0, pos) + max + mesg.substr(pos+3, mesg.length);
-                pos = mesg.indexOf("{i}");
-                mesg = mesg.substr(0, pos) + wizard_data[newNode]['menu_options'].menuItem + mesg.substr(pos+3, mesg.length);
-                alert(mesg);
-                return false;
+            var children = tree.get_children_dom(key);
+            var numNodes =0;
+            for (var i=0; i<children.length; i++) {
+                if (lo_data[children[i].id].attributes.nodeName == newNode) {
+                    numNodes++;
+                    if (max == numNodes) {
+                        var mesg = language.Alert.validate.max.prompt;
+                        var pos = mesg.indexOf("{m}");
+                        mesg = mesg.substr(0, pos) + max + mesg.substr(pos + 3, mesg.length);
+                        pos = mesg.indexOf("{i}");
+                        mesg = mesg.substr(0, pos) + wizard_data[newNode]['menu_options'].menuItem + mesg.substr(pos + 3, mesg.length);
+                        alert(mesg);
+                        return false;
+                    }
+                }
             }
         }
-        //if (wizard_data[key]['menu_options'].mixedContent === "false") {
-        //    $.each(tree.get_children_dom(key), function(){
-        //        if (this.attributes['nodeName'].nodeValue != newNode)
-        //        {
-        //            // title is in language.Alert.validate.mixedcontent.$title
-        //            alert(language.Alert.validate.mixedcontent.$prompt);
-        //            return false;
-        //        }
-        //    });
-        //}
+        if (wizard_data[lo_data[key].attributes.nodeName]['menu_options'].mixedContent === "false")
+        {
+            var children = tree.get_children_dom(key);
+            for (var i=0; i<children.length; i++)
+            {
+                if (lo_data[children[i].id].attributes.nodeName != newNode)
+                {
+                    // title is in language.Alert.validate.mixedcontent.$title
+                    alert(language.Alert.validate.mixedcontent.prompt);
+                    return false;
+                }
+            }
+        }
         return true;
     },
     // Build the tree once the data has loaded
@@ -1047,6 +1056,7 @@ var EDITOR = (function ($, parent) {
                     }
                 });
             }
+            //console.log("Type: " + page_name + ", valid children: " + lchildren);
             return {
                 icon: parent.toolbox.getIcon(page_name),
                 valid_children: lchildren
@@ -1057,9 +1067,11 @@ var EDITOR = (function ($, parent) {
         var node_types = {};
         node_types["#"] = create_node_type(null, ["treeroot"]); // Make sure that only the LO can be at root level
         $.each(wizard_data, function (key, value) {
+            /*
             if (key == "learningObject")
                 node_types['treeroot'] = create_node_type(key, value.new_nodes);
             else
+            */
                 node_types[key] = create_node_type(key, value.new_nodes);
         });
 
@@ -1069,7 +1081,7 @@ var EDITOR = (function ($, parent) {
         var treeview = $('<div />').attr('id', 'treeview');
         $(".ui-layout-west .content").append(treeview);
         $("#treeview").jstree({
-            "plugins" : [ "types",  "dnd"],
+            "plugins": ( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ) ? ["types"] : ["types", "dnd"],
             "core" : {
                 "data" : tree_json,
                 "check_callback" : true, // Need this to allow the copy_node function to work...
@@ -1083,25 +1095,6 @@ var EDITOR = (function ($, parent) {
         })
         .bind('select_node.jstree', function(event, data) {
             showNodeData(data.node.id);
-        })
-        .bind("copy_node.jstree", function (event, data) {
-            var new_id = generate_lo_key(),
-                original_id =  data.original.id,
-                tree = $('#treeview').jstree(true);
-
-            // Change the id
-            tree.set_id(data.node, new_id);
-
-            // Copy the lo_data from the old node to the new one
-            lo_data[new_id] = lo_data[original_id];
-
-            // Do the same for all the children
-            for(var i = 0, j = data.original.children_d.length; i < j; i++) {
-                new_id = generate_lo_key();
-                original_id =  data.original.children_d[i];
-                tree.set_id(data.node.children_d[i], new_id);
-                lo_data[new_id] = lo_data[original_id];
-            }
         })
         .bind('move_node.jstree', function(event, data) {
             console.log("move node");

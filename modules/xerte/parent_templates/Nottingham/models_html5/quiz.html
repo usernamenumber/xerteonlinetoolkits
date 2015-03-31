@@ -126,7 +126,7 @@
 			var url = $thisQ.getAttribute("image");
 			if (url != undefined && url != "") {
 				var newString = "";
-				newString += '<img src="' + eval(url) + '" class="quizImg"';
+				newString += '<img src="' + x_evalURL(url) + '" class="quizImg"';
 				if ($thisQ.getAttribute("tip") != undefined && $thisQ.getAttribute("tip") != "") {
 					newString += 'alt="' + $thisQ.getAttribute("tip") + '"';
 				}
@@ -134,6 +134,10 @@
 				infoString = newString + infoString;
 			}
 			$("#qTxt").html(x_addLineBreaks(infoString));
+			
+			if (x_currentPageXML.getAttribute("disableGlossary") == "true") {
+				$("#qTxt").find("a.x_glossary").contents().unwrap();
+			}
 
 			$("#feedback").html("");
 
@@ -211,6 +215,10 @@
 						.attr("for", "option" + i)
 						.data("option", $thisOption)
 						.html(x_addLineBreaks(thisOption.text));
+					
+					if (x_currentPageXML.getAttribute("disableGlossary") == "true") {
+						$thisOptionTxt.find("a.x_glossary").contents().unwrap();
+					}
 				});
             XTEnterInteraction(x_currentPage, this.questions[this.currentQ], 'multiplechoice', $thisQ.getAttribute("prompt"), correctOptions.join(';'), correctAnswer.join(';'), correctFeedback.join(';'));
 
@@ -233,6 +241,11 @@
             }
 
             $("#qTxt").html(fbTxt);
+			
+			if (x_currentPageXML.getAttribute("disableGlossary") == "true") {
+				$("#qTxt").find("a.x_glossary").contents().unwrap();
+			}
+			
             $("#optionHolder, #nextBtn, #checkBtn").hide();
             if (XTGetMode() != "normal")
             {
@@ -272,6 +285,11 @@
 				$splitScreen.remove();
 			} else {
 				$textHolder.html('<p>' + x_addLineBreaks(x_currentPageXML.getAttribute("instructions")) + '</p>');
+				
+				if (x_currentPageXML.getAttribute("disableGlossary") == "true") {
+					$textHolder.find("a.x_glossary").contents().unwrap();
+				}
+				
 				var textAlign = x_currentPageXML.getAttribute("align");
 				if (textAlign != "right" || (x_currentPageXML.getAttribute("video") != undefined && x_currentPageXML.getAttribute("video") != "")) {
 					if (panelWidth == "Small") {
@@ -322,7 +340,7 @@
 				imgSize = ' width="'+size_tmp[0]+'px" height="'+size_tmp[1]+'px"';
 			}
 			if (panelWidth != "Full" && x_currentPageXML.getAttribute("img") != undefined && x_currentPageXML.getAttribute("img") != "") {
-				$textHolder.append('<img src="' + eval(x_currentPageXML.getAttribute("img")) + '"' + imgSize +'>');
+				$textHolder.append('<img src="' + x_evalURL(x_currentPageXML.getAttribute("img")) + '"' + imgSize +'>');
 			}
 
 			// submitBtnWidth/nextBtnWidth/restartBtnWidth attributes not used as buttons will be sized automatically, submitBtnTip/nextBtnTip/restartBtnTip attributes also not used
@@ -455,6 +473,10 @@
                     if (quiz.showfeedback)
                     {
 					    $("#feedback").html(answerFeedback);
+						
+						if (x_currentPageXML.getAttribute("disableGlossary") == "true") {
+							$("#feedback").find("a.x_glossary").contents().unwrap();
+						}
 
 					    $("#nextBtn").removeAttr("disabled");
 					    $(this).attr("disabled", "disabled");

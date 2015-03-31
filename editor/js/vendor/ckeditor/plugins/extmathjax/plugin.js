@@ -12,7 +12,7 @@
 ( function() {
 
     //	var cdn = 'http:\/\/cdn.mathjax.org\/mathjax\/2.2-latest\/MathJax.js?config=TeX-AMS_HTML';
-    var cdn = 'https:\/\/c328740.ssl.cf1.rackcdn.com\/mathjax\/latest\/MathJax.js?config=TeX-MML-AM_HTMLorMML-full';
+    var cdn = 'https:\/\/cdn.mathjax.org\/mathjax\/latest\/MathJax.js?config=TeX-MML-AM_HTMLorMML-full';
 
 	CKEDITOR.plugins.add( 'extmathjax', {
 		lang: 'ca,cs,cy,de,el,en,en-gb,es,fa,fi,hu,ja,km,nb,nl,no,pl,pt,ro,ru,sv,uk,zh,zh-cn', // %REMOVE_LINE_CORE%
@@ -22,6 +22,8 @@
 
 		init: function( editor ) {
 			var cls = editor.config.mathJaxClass || 'math-tex';
+            var rootPath = this.path;
+            editor.addContentsCss( rootPath + 'css/extmathjax.css' );
 
 			editor.widgets.add( 'extmathjax', {
 				inline: true,
@@ -44,7 +46,7 @@
 				},
 
 				init: function() {
-					var iframe = this.parts.span.getChild( 0 );
+                    var iframe = this.parts.span.getChild( 0 );
 
 					// Check if span contains iframe and create it otherwise.
 					if ( !iframe || iframe.type != CKEDITOR.NODE_ELEMENT || !iframe.is( 'iframe' ) ) {
@@ -78,6 +80,17 @@
 				data: function() {
 					if ( this.frameWrapper )
 						this.frameWrapper.setValue( this.data.math );
+                    if ( this.wrapper )
+                    {
+                        if (this.data.block)
+                        {
+                            this.wrapper.addClass("mathjax-block");
+                        }
+                        else
+                        {
+                            this.wrapper.removeClass("mathjax-block");
+                        }
+                    }
 				},
 
 				upcast: function( el, data ) {
@@ -125,6 +138,7 @@
 
 					// Add attribute to prevent deleting empty span in data processing.
 					attrs[ 'data-cke-survive' ] = 1;
+
 
 					el.children[ 0 ].remove();
 

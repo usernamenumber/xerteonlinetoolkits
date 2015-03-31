@@ -33,7 +33,11 @@
 					$btnHolder = $("#btnHolder");
 				
 				$panel.height($x_pageHolder.height() - parseInt($x_pageDiv.css("padding-top")) * 2 - parseInt($panel.css("padding-top")) * 2 - 5);
-				$("#infoHolder").height($panel.height() - $btnHolder.height() - parseInt($btnHolder.css("margin-top")));
+				if ($btnHolder.length > 0) {
+					$("#infoHolder").height($panel.height() - $btnHolder.height() - parseInt($btnHolder.css("margin-top")));
+				} else {
+					$("#infoHolder").height($panel.height());
+				}
 			}
 			
 			var $pageContents = $("#pageContents");
@@ -112,9 +116,9 @@
 						var $img = $thisPanelPage.find(".pageImg img");
 						if (i == 0) {
 							// don't set src of image that's visible until later as panels needs to be fully set up for image scaling to work correctly
-							$img.data("src", eval(url));
+							$img.data("src", x_evalURL(url));
 						} else {
-							$img.attr("src", eval(url));
+							$img.attr("src", x_evalURL(url));
 						}
 						
 					} else if ($thisPanelPage.find(".pageSWF").length > 0) {
@@ -126,7 +130,7 @@
 							}
 						}
 						
-						swfobject.embedSWF(eval(url), "pageSWF" + i, size[0], size[1], "9.0.0", x_templateLocation + "common_html5/expressInstall.swf", "", "", "");
+						swfobject.embedSWF(x_evalURL(url), "pageSWF" + i, size[0], size[1], "9.0.0", x_templateLocation + "common_html5/expressInstall.swf", "", "", "");
 						if (this.getAttribute("tip") != undefined && this.getAttribute("tip") != "") {
 							$("#pageSWF" + i).attr("title", this.getAttribute("tip"));
 						}
@@ -135,7 +139,7 @@
 						$thisPanelPage.find(".jsHolder").data({
 							"savedDataIndex"	:x_pageInfo[x_currentPage].savedData.length - 1,
 							"built"				:false,
-							"url"				:eval(url)
+							"url"				:x_evalURL(url)
 						});
 					}
 				});
@@ -185,8 +189,12 @@
 				})
 				.trigger("click");
 			
-			if (x_browserInfo.mobile == true) {
-				$("#pageContents .panel").prepend($("#btnHolder"));
+			if ($(x_currentPageXML).children().length < 2) {
+				$("#slideTxt, #btnHolder").remove();
+			} else {
+				if (x_browserInfo.mobile == true) {
+					$("#pageContents .panel").prepend($("#btnHolder"));
+				}
 			}
 			
 			if ($panelPage.find(".pageImg img").length > 0) {

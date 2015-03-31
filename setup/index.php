@@ -37,13 +37,11 @@ Xerte Online Toolkits is a suite of web based tools designed and developed by a 
 <p>Xerte Online Toolkits is a powerful suite of browser-based tools that allow anyone with a web browser to log on and create interactive learning materials simply and effectively, and to collaborate with other users in developing content. Xerte Online Toolkits provides a number of project templates for creating online presentations and interactive content. Content is assembled using an intuitive interface, and multiple users can collaborate on shared projects. Xerte Toolkits is free software, released under the GNU Public License apart from three files:
 </p>
 <p>
-Snoopy.class.php - written by Monte Ohrt and released as LGPL <br><br> Archive.php - written by Devin Doucette and released as GPL <br><br> dunzip2.inc.php - written by Alexandre Tedeschi and released under his own terms (please see the file for details).</p>
 <p>
-<p>
-	<a href="xampp.php" style="border:0; text-decoration:none"><button type="button">Press here for XAMPP People</button></a>
+	<form action="xampp.php"><button type="submit">Press here for XAMPP People</button></form>
 </p>
 <p>
-	<a href="config_setup.php" style="border:0; text-decoration:none"><button type="button">Press here or a full install</button></a>
+	<form action="config_setup.php"><button type="submit">Press here or a full install</button></form>
 </p>
 <p><b>Please note:</b> If you install locally and use XAMPP it may not run if you are using Skype. Please disable Skype if you intend to use XAMPP locally.</p>
 </body>

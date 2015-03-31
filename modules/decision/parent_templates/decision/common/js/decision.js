@@ -125,6 +125,15 @@ function setUpInterface() {
 		insertCSS(eval(allParams.stylesheet));
 	}
 	
+	if (allParams.displayMode == "fixed") {
+		$mainHolder
+			.width(800)
+			.height(600)
+			.addClass("bgColour");
+	} else {
+		$("body").addClass("bgColour");
+	}
+	
 	$headerBlock.find("#titles h1").html(allParams.name);
 	$headerBlock.find("#titles h2").html(allQParams.name);
 	
@@ -600,7 +609,9 @@ function setUpQ(isNew) {
 				
 				var authorSupport = "";
 				if (allParams.authorSupport == "true") {
-					authorSupport =  '<span class="hint"> ' + $this.attr("target") + '</span>';
+					var	bracket1 = currentStepInfo.format == "menu" ? "(" : "" ,
+						bracket2 = currentStepInfo.format == "menu" ? ")" : "" ;
+					authorSupport =  '<span class="hint"> ' + bracket1 + $this.attr("target") + bracket2 + '</hint>';
 				}
 				
 				// is answer given via drop down menu or radio buttons
@@ -696,8 +707,18 @@ function setUpQ(isNew) {
 				inputW = currentStepInfo.max.length;
 			}
 			
+			var authorSupport = "";
+			if (allParams.authorSupport == "true") {
+				authorSupport += '<span class="hint">';
+				currentStepInfo.options.each(function(i) {
+					var $this = $(this);
+					authorSupport += "<p>" + $this.attr("min") + " - " + $this.attr("max") + " : " + $this.attr("target") + "</p>";
+				});
+				authorSupport += '</span>';
+			}
+			
 			$thisStep
-				.append('<div id="labelHolder">' + answerBox + '</div><div id="slider"></div>')
+				.append('<div id="labelHolder">' + authorSupport + answerBox + '</div><div id="slider"></div>')
 				.find("#amount").css("width", inputW + "em");
 			
 			var $slider = $thisStep.find("#slider"),

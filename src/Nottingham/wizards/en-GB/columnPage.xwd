@@ -8,7 +8,7 @@
   <!-- COLUMN PAGE============================== -->
   <columnPage menu="Navigators" menuItem="Column Page" hint="Presents a page with a series of columns of text and optional images." icon="icColumns" remove="true" thumb="thumbs/columnPage.jpg">
 
-    <name type="TextInput" label="Page Title"/>
+    <name type="TextInput" wysiwyg="true" label="Page Title"/>
 
     <narrationNavigate label="Navigate on narration" type="CheckBox" defaultValue="false" optional="true"/>
     <playNarration label="Auto-play narration" type="CheckBox" defaultValue="false" optional="true"/>
@@ -26,14 +26,14 @@
 
   <nestedPage menuItem="Nested Page" icon="icBullet" remove="true">
 
-    <name label="Page Title" type="TextInput" />
+    <name label="Page Title" type="TextInput" wysiwyg="true" />
     <text label="Page Text" type="TextArea" height="250" />
     <align label="Align Text" options="Top,Bottom" type="ComboBox" data="Top,Bottom" defaultValue="Top" width="100"/>
 	<linktarget label="Link from image" options="None,Original image,Specified URL" type="ComboBox"  data="None,Original image,Specified URL" defaultValue="None" width="200"/>
     <link label="Specified URL" type="textInput"/>
 	  
     <url label="Image" type="media"  optional="true"/>
-    <tip label="Image Tooltip" type="textInput"  optional="true"/>
+    <tip label="Image Description" type="textInput"  optional="true" defaultValue="Enter a Description for Accessibility"/>
 	<synch label="Synch Point" type="NumericStepper" min="0" max="9999" step="1" defaultValue="9999" width="100" optional="true"/>
     <initObject label="Init Object" type="TextInput"  optional="true"/>
     <controls label="Interactivity" options="Control Bar,Native SWF" type="ComboBox" data="Control Bar,Native SWF" defaultValue="Control Bar" width="100" optional="true"/>

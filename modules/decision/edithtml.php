@@ -144,12 +144,6 @@ function output_editor_code($row_edit, $xerte_toolkits_site, $read_status, $vers
     <style type="text/css"> body { font-size: 85%; } </style>
     <![endif]-->
 
-    <style>
-        .ui-menu { width: 200px; }
-        #insert-info {width: 60%; display: block; float: right; }
-		.hide {display: none;}
-    </style>
-
 </head>
 <body>
 <img id="loader" src="editor/img/loading16.gif" />
@@ -199,25 +193,23 @@ function output_editor_code($row_edit, $xerte_toolkits_site, $read_status, $vers
             <div id="insert_subnodes">
 
             </div>
+            <div class="nodeInfo" id="info">
+
+            </div>
         </div>
         <div id="main_footer" class="footer">
             <div id="checkbox_outer"><table><tr><td id="checkbox_holder"></td></tr></table></div>
         </div>
     </div>
 
-<div id="insert-dialog" class="hide" title="Insert Page">
-    <div id="insert-info">
-        <img class="thumb"/><br />
-        <span></span><br /><br />
-        <div id="insert-buttons"><button>Insert Before</button>&nbsp;<button>Insert After</button>&nbsp;<button>Insert (at end)</button></div>
-    </div>
-    <div id="insert-menu"></div>
-</div>
+<div id="shadow" class="dark" class="hide"></div>
+<div id="insert_menu" class="hide"></div>
 
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 <script>window.jQuery || document.write('<script src="editor/js/vendor/jquery-1.9.1.min.js"><\/script>')</script>
 <script type="text/javascript" src="editor/js/vendor/jquery.ui-1.10.4.js"></script>
 <script type="text/javascript" src="editor/js/vendor/jquery.layout-1.3.0-rc30.79.min.js"></script>
+<script type="text/javascript" src="editor/js/vendor/jquery.ui.touch-punch.min.js"></script>
 <script type="text/javascript" src="editor/js/vendor/modernizr-latest.js"></script>
 <script type="text/javascript" src="editor/js/vendor/jstree.js"></script>
 <!-- <script type="text/javascript" src="https://c328740.ssl.cf1.rackcdn.com/mathjax/latest/MathJax.js?config=TeX-MML-AM_HTMLorMML-full"></script>  -->
@@ -266,6 +258,24 @@ function output_editor_code($row_edit, $xerte_toolkits_site, $read_status, $vers
     echo "preview_path=\"" . $xerte_toolkits_site->flash_preview_check_path . "\";\n";
     echo "site_url=\"" . $xerte_toolkits_site->site_url . "\";\n";
     ?>
+
+    function bunload(){
+
+        path = "<?PHP echo $row_edit['template_id'] . "-" . $row_username['username'] . "-" . $row_edit['template_name'] . "/";?>";
+
+        template = "<?PHP  echo $row_edit['template_id']; ?>";
+
+        if(typeof window_reference==="undefined"){
+
+            window.opener.edit_window_close(path,template);
+
+        }else{
+
+            window_reference.edit_window_close(path,template);
+
+        }
+
+    }
 </script>
 <script type="text/javascript" src="editor/js/data.js"></script>
 <script type="text/javascript" src="editor/js/application.js"></script>
