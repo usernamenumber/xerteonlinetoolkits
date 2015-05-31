@@ -23,7 +23,7 @@
  * @param int $up - how far up the call stack we go to; this affects the line number/file name given in logging
  * @param bool $down - whether to print all frames from $up to this function, or just the one at $up
  */
-function _debug($string, $up = 0, $down = true) {
+function _debug($string, $up = 0, $down = false) {
     global $development;
     if (isset($development) && $development) {
         if (!is_string($string)) {
@@ -34,16 +34,17 @@ function _debug($string, $up = 0, $down = true) {
 
         $backtrace = debug_backtrace();
 	$frames = Array();
-        for ($i=$up; $i>=0; $i--) {
+        for ($i=min($up,sizeof($backtrace)); $i>=0; $i--) {
   	  if (isset($backtrace[$up]['file'])) {
-  	     $frames[] = $backtrace[$up]['file'] . $backtrace[$up]['line'] . "\n"; 
-  	  } else if sizeof($frames) > 0 {
+  	     $frames[] = $backtrace[$up]['file'] .":". $backtrace[$up]['line'] .":". $backtrace[$up]['function']; 
+  	  } else if (sizeof($frames) > 0) {
 	     // No need to bother with this if it's the first/only frame
              $frames[] = "No file information for frame $i";
 	  }
 	}
+	$frames[] = print_r($backtrace,true); 
 	if (sizeof($frames) > 0) {
-           $string = implode("\n",$frames)."\n".$string;
+           $string .= "\n  Trace:\n    ".implode("\n    ",$frames);
         }
         $file = '/tmp/debug.log';
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
@@ -56,8 +57,6 @@ function _debug($string, $up = 0, $down = true) {
         if (!file_exists($file)) {
             @touch($file); // try and create it.
         }
-
-	$string .= "\n".print_r($backtrace,true);
 
         if (!_is_writable($file)) { // fall back to PHP's inbuilt log, which may go to the apache log file, syslog or somewhere else.
             error_log($string);
